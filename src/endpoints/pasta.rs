@@ -197,6 +197,27 @@ pub async fn getshortpasta(data: web::Data<AppState>, id: web::Path<String>) -> 
     pastaresponse(data, id, String::from(""), false)
 }
 
+#[get("/preview/{id}")]
+pub async fn get_preview(data: web::Data<AppState>, id: web::Path<String>) -> HttpResponse {
+    let mut pastas = data.pastas.lock().unwrap();
+
+    let id = if ARGS.hash_ids {
+        hashid_to_u64(&id).unwrap_or(0)
+    } else {
+        to_u64(&id.into_inner()).unwrap_or(0)
+    };
+
+    remove_expired(&mut pastas);
+
+    if let Some(pasta) = pastas.iter().find(|pasta| pasta.id == id && pasta.private) {
+        return HttpResponse::Ok()
+            .content_type("text/plain; charset=utf-8")
+            .body(pasta.content.to_owned());
+    }
+
+    HttpResponse::NotFound().finish()
+}
+
 fn urlresponse(data: web::Data<AppState>, id: web::Path<String>) -> HttpResponse {
     // get access to the pasta collection
     let mut pastas = data.pastas.lock().unwrap();

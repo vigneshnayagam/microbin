@@ -115,6 +115,7 @@ async fn main() -> std::io::Result<()> {
             .service(pasta_endpoint::getpasta)
             .service(pasta_endpoint::postpasta)
             .service(pasta_endpoint::getshortpasta)
+            .service(pasta_endpoint::get_preview)
             .service(pasta_endpoint::postshortpasta)
             .service(pasta_endpoint::getrawpasta)
             .service(pasta_endpoint::postrawpasta)
