@@ -1,5 +1,6 @@
 use crate::pasta::{Pasta, PastaFile};
 use crate::util::animalnumbers::to_animal_names;
+use crate::util::auth;
 use crate::util::db::insert;
 use crate::util::hashids::to_hashids;
 use crate::util::misc::{encrypt, encrypt_file, is_valid_url};
@@ -132,6 +133,7 @@ pub async fn create(
         encrypt_server: false,
         encrypted_key: Some(String::from("")),
         encrypt_client: false,
+        password_hash: None,
         created: timenow,
         read_count: 0,
         burn_after_reads: 0,
@@ -332,6 +334,21 @@ pub async fn create(
     }
 
     let id = new_pasta.id;
+
+    if new_pasta.readonly || new_pasta.encrypt_server {
+        let password = if new_pasta.encrypt_client {
+            &random_key
+        } else {
+            &plain_key
+        };
+        if password.is_empty() {
+            return Err(ErrorBadRequest("Password required for protected uploads"));
+        }
+        new_pasta.password_hash = Some(
+            auth::hash_password(password)
+                .map_err(actix_web::error::ErrorInternalServerError)?,
+        );
+    }
 
     if plain_key != *"" && new_pasta.readonly {
         new_pasta.encrypted_key = Some(encrypt(id.to_string().as_str(), &plain_key));
