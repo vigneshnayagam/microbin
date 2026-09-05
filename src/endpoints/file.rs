@@ -76,6 +76,7 @@ pub async fn post_secure_file(
         }
 
         if let Some(filename) = target_filename {
+            let filename = filename.to_string();
             // Try new naming scheme {filename}.enc first, then fallback to data.enc (legacy/primary)
             let mut enc_path = format!(
                 "{}/attachments/{}/{}.enc",
@@ -180,6 +181,7 @@ pub async fn get_file(
         }
 
         if let Some(pasta_file) = target_file {
+            let pasta_file = pasta_file.name().to_string();
             if pastas[index].encrypt_server {
                 return Ok(HttpResponse::Found()
                     .append_header((
@@ -194,7 +196,7 @@ pub async fn get_file(
                 "{}/attachments/{}/{}",
                 ARGS.data_dir,
                 pastas[index].id_as_animals(),
-                pasta_file.name()
+                pasta_file
             );
             let file_path = PathBuf::from(file_path);
 
@@ -215,7 +217,7 @@ pub async fn get_file(
             let file_reponse = file_reponse.set_content_disposition(header::ContentDisposition {
                 disposition,
                 parameters: vec![header::DispositionParam::Filename(
-                    pasta_file.name().to_string(),
+                    pasta_file,
                 )],
             });
             // This takes care of streaming/seeking using the Range
