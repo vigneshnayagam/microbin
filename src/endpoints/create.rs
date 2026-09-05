@@ -136,6 +136,7 @@ pub async fn create(
         password_hash: None,
         created: timenow,
         read_count: 0,
+        download_count: 0,
         burn_after_reads: 0,
         last_read: timenow,
         pasta_type: String::from(""),

@@ -41,6 +41,7 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
             expiration INTEGER NOT NULL,
             last_read INTEGER NOT NULL,
             read_count INTEGER NOT NULL,
+            download_count INTEGER NOT NULL DEFAULT 0,
             burn_after_reads INTEGER NOT NULL,
             attachments TEXT,
             pasta_type TEXT NOT NULL,
@@ -53,6 +54,10 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
     // Migrations: Add columns if they don't exist
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN attachments TEXT", params![]);
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN password_hash TEXT", params![]);
+    let _ = conn.execute(
+        "ALTER TABLE pasta ADD COLUMN download_count INTEGER NOT NULL DEFAULT 0",
+        params![],
+    );
 
     for pasta in pasta_data.iter() {
         conn.execute(
@@ -72,11 +77,12 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
                 expiration,
                 last_read,
                 read_count,
+                download_count,
                 burn_after_reads,
                 pasta_type,
                 attachments,
                 password_hash
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
             params![
                 pasta.id,
                 pasta.content,
@@ -93,6 +99,7 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
                 pasta.expiration,
                 pasta.last_read,
                 pasta.read_count,
+                pasta.download_count,
                 pasta.burn_after_reads,
                 pasta.pasta_type,
                 serde_json::to_string(&pasta.attachments).unwrap_or("".to_string()),
@@ -125,6 +132,7 @@ pub fn select_all_from_db() -> Vec<Pasta> {
             expiration INTEGER NOT NULL,
             last_read INTEGER NOT NULL,
             read_count INTEGER NOT NULL,
+            download_count INTEGER NOT NULL DEFAULT 0,
             burn_after_reads INTEGER NOT NULL,
             attachments TEXT,
             pasta_type TEXT NOT NULL,
@@ -137,12 +145,16 @@ pub fn select_all_from_db() -> Vec<Pasta> {
     // Migrations: Add columns if they don't exist
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN attachments TEXT", params![]);
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN password_hash TEXT", params![]);
+    let _ = conn.execute(
+        "ALTER TABLE pasta ADD COLUMN download_count INTEGER NOT NULL DEFAULT 0",
+        params![],
+    );
 
     let mut stmt = conn
         .prepare(
             "SELECT id, content, file_name, file_size, extension, read_only, private, editable,
                     encrypt_server, encrypt_client, encrypted_key, created, expiration, last_read,
-                    read_count, burn_after_reads, pasta_type, attachments, password_hash
+                    read_count, download_count, burn_after_reads, pasta_type, attachments, password_hash
              FROM pasta ORDER BY created ASC",
         )
         .expect("Failed to prepare SQL statement to load pastas");
@@ -176,13 +188,14 @@ pub fn select_all_from_db() -> Vec<Pasta> {
                 expiration: row.get(12)?,
                 last_read: row.get(13)?,
                 read_count: row.get(14)?,
-                burn_after_reads: row.get(15)?,
-                pasta_type: row.get(16)?,
-                attachments: match row.get::<_, Option<String>>(17) {
+                download_count: row.get(15)?,
+                burn_after_reads: row.get(16)?,
+                pasta_type: row.get(17)?,
+                attachments: match row.get::<_, Option<String>>(18) {
                     Ok(Some(json)) => serde_json::from_str(&json).unwrap_or(None),
                     _ => None,
                 },
-                password_hash: row.get(18)?,
+                password_hash: row.get(19)?,
             })
         })
         .expect("Failed to select Pastas from SQLite database.");
@@ -214,6 +227,7 @@ pub fn insert(pasta: &Pasta) {
             expiration INTEGER NOT NULL,
             last_read INTEGER NOT NULL,
             read_count INTEGER NOT NULL,
+            download_count INTEGER NOT NULL DEFAULT 0,
             burn_after_reads INTEGER NOT NULL,
             attachments TEXT,
             pasta_type TEXT NOT NULL,
@@ -226,6 +240,10 @@ pub fn insert(pasta: &Pasta) {
     // Migrations: Add columns if they don't exist
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN attachments TEXT", params![]);
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN password_hash TEXT", params![]);
+    let _ = conn.execute(
+        "ALTER TABLE pasta ADD COLUMN download_count INTEGER NOT NULL DEFAULT 0",
+        params![],
+    );
 
     conn.execute(
         "INSERT INTO pasta (
@@ -244,11 +262,12 @@ pub fn insert(pasta: &Pasta) {
                 expiration,
                 last_read,
                 read_count,
+                download_count,
                 burn_after_reads,
                 pasta_type,
                 attachments,
                 password_hash
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
         params![
             pasta.id,
             pasta.content,
@@ -265,6 +284,7 @@ pub fn insert(pasta: &Pasta) {
             pasta.expiration,
             pasta.last_read,
             pasta.read_count,
+            pasta.download_count,
             pasta.burn_after_reads,
             pasta.pasta_type,
             serde_json::to_string(&pasta.attachments).unwrap_or("".to_string()),
@@ -294,10 +314,11 @@ pub fn update(pasta: &Pasta) {
             expiration = ?13,
             last_read = ?14,
             read_count = ?15,
-            burn_after_reads = ?16,
-            pasta_type = ?17,
-            attachments = ?18,
-            password_hash = ?19
+            download_count = ?16,
+            burn_after_reads = ?17,
+            pasta_type = ?18,
+            attachments = ?19,
+            password_hash = ?20
         WHERE id = ?1;",
         params![
             pasta.id,
@@ -315,6 +336,7 @@ pub fn update(pasta: &Pasta) {
             pasta.expiration,
             pasta.last_read,
             pasta.read_count,
+            pasta.download_count,
             pasta.burn_after_reads,
             pasta.pasta_type,
             serde_json::to_string(&pasta.attachments).unwrap_or("".to_string()),
