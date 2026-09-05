@@ -84,6 +84,8 @@ pub struct Pasta {
     pub encrypt_server: bool,
     pub encrypt_client: bool,
     pub encrypted_key: Option<String>,
+    #[serde(default)]
+    pub password_hash: Option<String>,
     pub created: i64,
     pub expiration: i64,
     pub last_read: i64,

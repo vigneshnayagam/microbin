@@ -43,14 +43,16 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
             read_count INTEGER NOT NULL,
             burn_after_reads INTEGER NOT NULL,
             attachments TEXT,
-            pasta_type TEXT NOT NULL
+            pasta_type TEXT NOT NULL,
+            password_hash TEXT
         );",
         params![],
     )
     .expect("Failed to create SQLite table for Pasta!");
 
-    // Migration: Add attachments column if it doesn't exist
+    // Migrations: Add columns if they don't exist
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN attachments TEXT", params![]);
+    let _ = conn.execute("ALTER TABLE pasta ADD COLUMN password_hash TEXT", params![]);
 
     for pasta in pasta_data.iter() {
         conn.execute(
@@ -72,8 +74,9 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
                 read_count,
                 burn_after_reads,
                 pasta_type,
-                attachments
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
+                attachments,
+                password_hash
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
             params![
                 pasta.id,
                 pasta.content,
@@ -93,6 +96,7 @@ pub fn rewrite_all_to_db(pasta_data: &[Pasta]) {
                 pasta.burn_after_reads,
                 pasta.pasta_type,
                 serde_json::to_string(&pasta.attachments).unwrap_or("".to_string()),
+                pasta.password_hash.as_deref(),
             ],
         )
         .expect("Failed to insert pasta.");
@@ -123,17 +127,24 @@ pub fn select_all_from_db() -> Vec<Pasta> {
             read_count INTEGER NOT NULL,
             burn_after_reads INTEGER NOT NULL,
             attachments TEXT,
-            pasta_type TEXT NOT NULL
+            pasta_type TEXT NOT NULL,
+            password_hash TEXT
         );",
         params![],
     )
     .expect("Failed to create SQLite table for Pasta!");
 
-    // Migration: Add attachments column if it doesn't exist
+    // Migrations: Add columns if they don't exist
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN attachments TEXT", params![]);
+    let _ = conn.execute("ALTER TABLE pasta ADD COLUMN password_hash TEXT", params![]);
 
     let mut stmt = conn
-        .prepare("SELECT * FROM pasta ORDER BY created ASC")
+        .prepare(
+            "SELECT id, content, file_name, file_size, extension, read_only, private, editable,
+                    encrypt_server, encrypt_client, encrypted_key, created, expiration, last_read,
+                    read_count, burn_after_reads, pasta_type, attachments, password_hash
+             FROM pasta ORDER BY created ASC",
+        )
         .expect("Failed to prepare SQL statement to load pastas");
 
     let pasta_iter = stmt
@@ -171,6 +182,7 @@ pub fn select_all_from_db() -> Vec<Pasta> {
                     Ok(Some(json)) => serde_json::from_str(&json).unwrap_or(None),
                     _ => None,
                 },
+                password_hash: row.get(18)?,
             })
         })
         .expect("Failed to select Pastas from SQLite database.");
@@ -204,14 +216,16 @@ pub fn insert(pasta: &Pasta) {
             read_count INTEGER NOT NULL,
             burn_after_reads INTEGER NOT NULL,
             attachments TEXT,
-            pasta_type TEXT NOT NULL
+            pasta_type TEXT NOT NULL,
+            password_hash TEXT
         );",
         params![],
     )
     .expect("Failed to create SQLite table for Pasta!");
 
-    // Migration: Add attachments column if it doesn't exist
+    // Migrations: Add columns if they don't exist
     let _ = conn.execute("ALTER TABLE pasta ADD COLUMN attachments TEXT", params![]);
+    let _ = conn.execute("ALTER TABLE pasta ADD COLUMN password_hash TEXT", params![]);
 
     conn.execute(
         "INSERT INTO pasta (
@@ -232,8 +246,9 @@ pub fn insert(pasta: &Pasta) {
                 read_count,
                 burn_after_reads,
                 pasta_type,
-                attachments
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)",
+                attachments,
+                password_hash
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
         params![
             pasta.id,
             pasta.content,
@@ -253,6 +268,7 @@ pub fn insert(pasta: &Pasta) {
             pasta.burn_after_reads,
             pasta.pasta_type,
             serde_json::to_string(&pasta.attachments).unwrap_or("".to_string()),
+            pasta.password_hash.as_deref(),
         ],
     )
     .expect("Failed to insert pasta.");
@@ -280,7 +296,8 @@ pub fn update(pasta: &Pasta) {
             read_count = ?15,
             burn_after_reads = ?16,
             pasta_type = ?17,
-            attachments = ?18
+            attachments = ?18,
+            password_hash = ?19
         WHERE id = ?1;",
         params![
             pasta.id,
@@ -301,6 +318,7 @@ pub fn update(pasta: &Pasta) {
             pasta.burn_after_reads,
             pasta.pasta_type,
             serde_json::to_string(&pasta.attachments).unwrap_or("".to_string()),
+            pasta.password_hash.as_deref(),
         ],
     )
     .expect("Failed to update pasta.");

@@ -8,7 +8,7 @@ use crate::util::animalnumbers::to_u64;
 use crate::util::auth;
 use crate::util::db::delete;
 use crate::util::hashids::to_u64 as hashid_to_u64;
-use crate::util::misc::{decrypt, remove_expired};
+use crate::util::misc::remove_expired;
 use crate::AppState;
 use askama::Template;
 use std::fs;
@@ -93,35 +93,24 @@ pub async fn post_remove(
                         is_password_correct = true;
                     }
 
-                    // if it is read-only, the content is not encrypted, but the key is
-                    if !is_password_correct && pastas[i].readonly {
-                        if let Some(ref encrypted_key) = pastas[i].encrypted_key {
-                            let res = decrypt(encrypted_key, &password);
-                            if let Ok(decrypted_key) = res {
-                                if decrypted_key == id.to_string() {
-                                    is_password_correct = true;
-                                }
-                            }
-                        }
-                    } else if !is_password_correct && pastas[i].encrypt_server {
-                        // if it is not read-only, the content is encrypted
-                        let res = decrypt(pastas[i].content.to_owned().as_str(), &password);
-                        if res.is_ok() {
-                            is_password_correct = true;
-                        }
+                    if !is_password_correct {
+                        is_password_correct = pastas[i]
+                            .password_hash
+                            .as_deref()
+                            .is_some_and(|hash| auth::verify_password(&password, hash));
                     }
 
                     if is_password_correct {
-                // remove the directory and all its contents
-                if fs::remove_dir_all(format!(
-                    "{}/attachments/{}/",
-                    ARGS.data_dir,
-                    pasta.id_as_animals()
-                ))
-                .is_err()
-                {
-                    log::error!("Failed to delete directory for {}!", pasta.id_as_animals())
-                }
+                        // remove the directory and all its contents
+                        if fs::remove_dir_all(format!(
+                            "{}/attachments/{}/",
+                            ARGS.data_dir,
+                            pasta.id_as_animals()
+                        ))
+                        .is_err()
+                        {
+                            log::error!("Failed to delete directory for {}!", pasta.id_as_animals())
+                        }
 
                         // remove it from in-memory pasta list
                         pastas.remove(i);
