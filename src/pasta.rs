@@ -90,6 +90,8 @@ pub struct Pasta {
     pub expiration: i64,
     pub last_read: i64,
     pub read_count: u64,
+    #[serde(default)]
+    pub download_count: u64,
     pub burn_after_reads: u64,
     pub pasta_type: String,
 }

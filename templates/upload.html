@@ -203,6 +203,9 @@ pasta.file_embeddable() && !pasta.encrypt_client && !pasta.attachments.is_some()
   <p style="font-size: small">Read {{pasta.read_count}} times, last
     {{pasta.last_read_time_ago_as_string()}}</p>
   {%- endif %} {%- endif %}
+  {% if args.show_read_stats && (pasta.file.is_some() || pasta.attachments.is_some()) %}
+  <p style="font-size: small">Downloads {{pasta.download_count}}</p>
+  {%- endif %}
 
 </div>
 
