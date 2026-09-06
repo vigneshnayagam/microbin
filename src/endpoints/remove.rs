@@ -71,6 +71,8 @@ pub async fn post_remove(
     id: web::Path<String>,
     payload: Multipart,
 ) -> Result<HttpResponse, Error> {
+    let password = auth::password_from_multipart(payload).await?;
+
     let id = if ARGS.hash_ids {
         hashid_to_u64(&id).unwrap_or(0)
     } else {
@@ -80,8 +82,6 @@ pub async fn post_remove(
     let mut pastas = data.pastas.lock().unwrap();
 
     remove_expired(&mut pastas);
-
-    let password = auth::password_from_multipart(payload).await?;
 
     for (i, pasta) in pastas.iter().enumerate() {
         if pasta.id == id {
