@@ -23,7 +23,7 @@ pub struct Args {
     #[clap(long, env = "MICROBIN_ADMIN_USERNAME", default_value = "admin")]
     pub auth_admin_username: SecretArg,
 
-    #[clap(long, env = "MICROBIN_ADMIN_PASSWORD", default_value = "m1cr0b1n")]
+    #[clap(long, env = "MICROBIN_ADMIN_PASSWORD", default_value = "mb_admin_prod_7f4c9d2a6e8b")]
     pub auth_admin_password: SecretArg,
 
     #[clap(long, env = "MICROBIN_EDITABLE", action = clap::ArgAction::Set, default_value_t = true)]
