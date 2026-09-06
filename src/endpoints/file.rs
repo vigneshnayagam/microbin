@@ -21,6 +21,8 @@ pub async fn post_secure_file(
     payload: Multipart,
     query: web::Query<HashMap<String, String>>,
 ) -> Result<HttpResponse, Error> {
+    let password = auth::password_from_multipart(payload).await?;
+
     // get access to the pasta collection
     let mut pastas = data.pastas.lock().unwrap();
 
@@ -43,8 +45,6 @@ pub async fn post_secure_file(
             break;
         }
     }
-
-    let password = auth::password_from_multipart(payload).await?;
 
     if found {
         let mut target_filename = None;
